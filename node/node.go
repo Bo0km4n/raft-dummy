@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"os"
 	"sync"
 	"time"
 
@@ -34,7 +33,6 @@ var electionTimeoutMax = int64(300)
 
 type state struct {
 	mode            mode
-	modeChan        chan mode
 	followerChan    chan struct{}
 	candidateChan   chan struct{}
 	leaderChan      chan struct{}
@@ -72,7 +70,6 @@ func NewNode(machineID, candidateID int64) State {
 	s := &state{
 		mode:            FOLLOWER,
 		machineID:       machineID,
-		modeChan:        make(chan mode),
 		followerChan:    make(chan struct{}),
 		candidateChan:   make(chan struct{}),
 		leaderChan:      make(chan struct{}),
@@ -121,62 +118,6 @@ func (s *state) startHeartBeat() {
 	s.timer = time.NewTimer(s.electionTimeout * time.Millisecond)
 	for range s.timer.C {
 		s.candidateChan <- struct{}{}
-	}
-}
-
-func (s *state) handleMode() {
-	go s.handleFollower()
-	go s.handleCandidate()
-	go s.handleLeader()
-}
-
-func (s *state) handleFollower() {
-	for range s.followerChan {
-		s.mu.Lock()
-		s.Info(s.mode, "changed Follower")
-		s.ResetElectionTimeout()
-		s.mode = FOLLOWER
-		s.mu.Unlock()
-	}
-}
-
-func (s *state) handleCandidate() {
-	for range s.candidateChan {
-
-		s.mu.Lock()
-		s.mode = CANDIDATE
-		s.Info(s.mode, "changed Candidate")
-		s.currentTerm++
-		s.mu.Unlock()
-		if !s.broadcastVoteRPC() {
-			s.Info(s.mode, "Not accepted leader vote")
-			s.followerChan <- struct{}{}
-		} else {
-			s.leaderChan <- struct{}{}
-		}
-	}
-}
-
-func (s *state) handleLeader() {
-	for range s.leaderChan {
-		s.mu.Lock()
-		s.mode = LEADER
-		s.Info(s.mode, "changed Leader")
-		s.mu.Unlock()
-		os.Exit(0)
-	}
-}
-
-func (s *state) stringMode() string {
-	switch s.mode {
-	case LEADER:
-		return "Leader"
-	case CANDIDATE:
-		return "Candidate"
-	case FOLLOWER:
-		return "Follower"
-	default:
-		return "nil"
 	}
 }
 

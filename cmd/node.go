@@ -57,7 +57,7 @@ func startNode(cnd *cobra.Command, args []string) {
 	nodes[3].AddNode("127.0.0.1:50051", "127.0.0.1:50052", "127.0.0.1:50053", "127.0.0.1:50055")
 	nodes[4].AddNode("127.0.0.1:50051", "127.0.0.1:50052", "127.0.0.1:50053", "127.0.0.1:50054")
 
-	fmt.Println("Add 4 nodes each nodes")
+	fmt.Println("Add 4 nodes to each nodes")
 
 	for _, n := range nodes {
 		n.LaunchSideHandlers()

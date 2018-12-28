@@ -11,9 +11,10 @@ func (s *state) handleMode() {
 func (s *state) handleFollower() {
 	for range s.followerChan {
 		s.mu.Lock()
-		s.Info(s.mode, "changed to Follower")
-		s.ResetElectionTimeout()
+		s.resetVoted()
 		s.mode = FOLLOWER
+		s.ResetElectionTimeout()
+		s.Info(s.mode, "changed to Follower")
 		s.mu.Unlock()
 	}
 }
@@ -21,6 +22,7 @@ func (s *state) handleFollower() {
 func (s *state) handleCandidate() {
 	for range s.candidateChan {
 		s.mu.Lock()
+		s.resetVoted()
 		s.mode = CANDIDATE
 		s.Info(s.mode, "changed to Candidate")
 		s.currentTerm++
@@ -37,6 +39,7 @@ func (s *state) handleCandidate() {
 func (s *state) handleLeader() {
 	for range s.leaderChan {
 		s.mu.Lock()
+		s.resetVoted()
 		s.mode = LEADER
 		s.Info(s.mode, "changed to Leader")
 		s.mu.Unlock()

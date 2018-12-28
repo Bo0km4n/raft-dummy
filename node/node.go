@@ -138,3 +138,7 @@ func (s *state) GetLastLogTerm() int64 {
 	}
 	return int64(s.logs[len(s.logs)-1].Term)
 }
+
+func (s *state) resetVoted() {
+	s.votedFor = 0
+}

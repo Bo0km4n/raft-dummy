@@ -21,9 +21,10 @@ func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto
 	s.mu.Lock()
 	if s.currentTerm < in.Term {
 		s.currentTerm = in.Term
+		s.resetVoted()
 	}
 	if s.mode != FOLLOWER || s.votedFor != 0 {
-		s.Info(s.mode, fmt.Sprintf("can't accept vote from %d", in.CandidateId))
+		s.Info(s.mode, fmt.Sprintf("can't accept vote from %d, %v", in.CandidateId, s.votedFor))
 		return &proto.RequestVoteResult{
 			Term:        s.currentTerm,
 			VoteGranted: false,
@@ -46,7 +47,7 @@ func (s *state) heartBeat() {
 }
 
 func (s *state) broadcastVoteRPC() bool {
-	completed := 0
+	completed := 1
 	for _, n := range s.nodes {
 		conn, err := grpc.Dial(n.Addr, grpc.WithInsecure())
 		if err != nil {

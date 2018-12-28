@@ -1,0 +1,29 @@
+{
+    "nodes": [
+        {
+            "machine-id": 1,
+            "candidate-id": 1,
+            "addr": "127.0.0.1:50051"
+        },
+        {
+            "machine-id": 2,
+            "candidate-id": 2,
+            "addr": "127.0.0.1:50052"
+        },
+        {
+            "machine-id": 3,
+            "candidate-id": 3,
+            "addr": "127.0.0.1:50053"
+        },
+        {
+            "machine-id": 4,
+            "candidate-id": 4,
+            "addr": "127.0.0.1:50054"
+        },
+        {
+            "machine-id": 5,
+            "candidate-id": 5,
+            "addr": "127.0.0.1:50055"
+        }
+    ]
+}

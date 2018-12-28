@@ -2,68 +2,105 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
-	"google.golang.org/grpc"
 
 	"github.com/Bo0km4n/raft-dummy/proto"
 )
 
 func (s *state) AppendEntriesRPC(c context.Context, in *proto.AppendEntries) (*proto.AppendEntriesResult, error) {
 	if len(in.Entries) == 0 {
-		s.heartBeat()
+		switch s.getMode() {
+		case CANDIDATE:
+			if in.Term < s.getCurTerm() {
+				s.candidateChan <- struct{}{}
+				return &proto.AppendEntriesResult{Term: s.getCurTerm(), Success: false}, nil
+			}
+			s.setMode(FOLLOWER)
+		case FOLLOWER:
+			// update
+			if in.Term < s.getCurTerm() {
+				return &proto.AppendEntriesResult{Term: s.getCurTerm(), Success: false}, nil
+			}
+			s.setTerm(in.Term)
+			s.heartBeat()
+			return &proto.AppendEntriesResult{Term: s.getCurTerm(), Success: true}, nil
+		}
 	}
-	return nil, nil
+	return &proto.AppendEntriesResult{}, nil
 }
 
 func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto.RequestVoteResult, error) {
-	defer s.mu.Unlock()
-	s.mu.Lock()
-	if s.currentTerm < in.Term {
-		s.currentTerm = in.Term
-		s.resetVoted()
-	}
-	if s.mode != FOLLOWER || s.votedFor != 0 {
-		s.Info(s.mode, fmt.Sprintf("can't accept vote from %d, %v", in.CandidateId, s.votedFor))
+	if in.Term < s.getCurTerm() {
 		return &proto.RequestVoteResult{
-			Term:        s.currentTerm,
+			Term:        s.getCurTerm(),
 			VoteGranted: false,
 		}, nil
 	}
-	s.timer.Stop()
+	if s.getVotedFor() == 0 || s.getVotedFor() == in.CandidateId {
+		// update log
+		s.setVotedFor(in.CandidateId)
+		return &proto.RequestVoteResult{
+			Term:        in.Term,
+			VoteGranted: true,
+		}, nil
+	}
 
-	s.Info(s.mode, fmt.Sprintf("received request vote from %d", in.CandidateId))
-	s.votedFor = in.CandidateId
-	return &proto.RequestVoteResult{
-		Term:        in.Term,
-		VoteGranted: true,
-	}, nil
+	s.Info(s.getMode(), fmt.Sprintf("voted=%d from %d", s.getVotedFor(), in.CandidateId))
+
+	return &proto.RequestVoteResult{}, errors.New("Not matched vote")
 }
 
 func (s *state) heartBeat() {
-	s.mu.Lock()
 	s.ResetElectionTimeout()
-	s.mu.Unlock()
+	s.Info(s.getMode(), "received heart beats")
 }
 
 func (s *state) broadcastVoteRPC() bool {
 	completed := 1
 	for _, n := range s.nodes {
-		conn, err := grpc.Dial(n.Addr, grpc.WithInsecure())
-		if err != nil {
-			continue
-		}
-		client := proto.NewRaftClient(conn)
+		s.mu.Lock()
+		client := proto.NewRaftClient(n.Conn)
 		res, err := client.RequestVoteRPC(context.Background(), &proto.RequestVote{
 			Term:         s.currentTerm,
 			CandidateId:  s.candidateID,
 			LastLogIndex: s.GetLastLogIndex(),
 			LastLogTerm:  s.GetLastLogTerm(),
 		})
+		if err != nil {
+			// s.Warn(s.mode, err.Error())
+			continue
+		}
+		if res.Term > s.currentTerm {
+			s.currentTerm = res.Term
+			return false
+		}
 		// pp.Println(res, err)
 		if res.VoteGranted {
+			//s.Info(s.getMode(), fmt.Sprintf("voted from: %s", n.Addr))
 			completed++
 		}
+		s.mu.Unlock()
 	}
 	return completed > len(s.nodes)/2
+}
+
+func (s *state) broadcastHeartBeat() {
+	go func() {
+		for {
+			for _, n := range s.nodes {
+				client := proto.NewRaftClient(n.Conn)
+				res, _ := client.AppendEntriesRPC(context.Background(), &proto.AppendEntries{
+					Term:    s.currentTerm,
+					Entries: []*proto.Entry{},
+				})
+				if !res.Success && res.Term > s.getCurTerm() {
+					s.setMode(FOLLOWER)
+					s.ResetElectionTimeout()
+					s.Info(s.getMode(), "LEADER to be FOLLOWER")
+					return
+				}
+			}
+		}
+	}()
 }

@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -20,8 +21,6 @@ type State interface {
 	LaunchSideHandlers()
 }
 
-type mode int64
-
 const (
 	LEADER = iota
 	CANDIDATE
@@ -32,7 +31,7 @@ var electionTimeoutMin = int64(150)
 var electionTimeoutMax = int64(300)
 
 type state struct {
-	mode            mode
+	mode            int64
 	followerChan    chan struct{}
 	candidateChan   chan struct{}
 	leaderChan      chan struct{}
@@ -61,7 +60,7 @@ type log struct {
 
 func (s *state) ResetElectionTimeout() {
 	s.electionTimeout = time.Duration(rand.Int63n(electionTimeoutMax-electionTimeoutMin) + electionTimeoutMin)
-	s.timer.Reset(s.electionTimeout * time.Millisecond)
+	s.timer = time.NewTimer(s.electionTimeout)
 }
 
 func NewNode(machineID, candidateID int64) State {
@@ -103,26 +102,30 @@ func (s *state) Start(port string) {
 }
 
 func (s *state) LaunchSideHandlers() {
-	s.handleMode()
+	s.timer = time.NewTimer(s.electionTimeout * time.Millisecond)
+
+	go s.handleCandidate()
 	go s.startHeartBeat()
 }
 
 func (s *state) AddNode(addrs ...string) error {
 	for _, addr := range addrs {
-		s.nodes = append(s.nodes, &node{Addr: addr})
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		if err != nil {
+			s.Warn(s.mode, err.Error())
+			return err
+		}
+		s.nodes = append(s.nodes, &node{Addr: addr, Conn: conn})
 	}
 	return nil
 }
 
-func (s *state) startHeartBeat() {
-	s.timer = time.NewTimer(s.electionTimeout * time.Millisecond)
-	for range s.timer.C {
-		s.candidateChan <- struct{}{}
-	}
+func (s *state) Info(mode int64, msg string) {
+	logrus.Infof("Machined-id: %d, %s, %d, msg: %s", s.machineID, s.stringMode(), s.currentTerm, msg)
 }
 
-func (s *state) Info(mode mode, msg string) {
-	logrus.Infof("Machined-id: %d, %s, %d, msg: %s", s.machineID, s.stringMode(), s.currentTerm, msg)
+func (s *state) Warn(mode int64, msg string) {
+	logrus.Warnf("Machined-id: %d, %s, %d, msg: %s", s.machineID, s.stringMode(), s.currentTerm, msg)
 }
 
 func (s *state) GetLastLogIndex() int64 {
@@ -141,4 +144,36 @@ func (s *state) GetLastLogTerm() int64 {
 
 func (s *state) resetVoted() {
 	s.votedFor = 0
+}
+
+func (s *state) getMode() int64 {
+	return atomic.LoadInt64(&s.mode)
+}
+
+func (s *state) getCurTerm() int64 {
+	return atomic.LoadInt64(&s.currentTerm)
+}
+
+func (s *state) incrementTerm() int64 {
+	atomic.AddInt64(&s.currentTerm, 1)
+	return atomic.LoadInt64(&s.currentTerm)
+}
+
+func (s *state) setTerm(v int64) int64 {
+	atomic.StoreInt64(&s.currentTerm, v)
+	return atomic.LoadInt64(&s.currentTerm)
+}
+
+func (s *state) setMode(v int64) int64 {
+	atomic.StoreInt64(&s.mode, v)
+	return atomic.LoadInt64(&s.mode)
+}
+
+func (s *state) setVotedFor(v int64) int64 {
+	atomic.StoreInt64(&s.votedFor, v)
+	return atomic.LoadInt64(&s.votedFor)
+}
+
+func (s *state) getVotedFor() int64 {
+	return atomic.LoadInt64(&s.votedFor)
 }

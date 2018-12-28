@@ -1,49 +1,30 @@
 package node
 
-import "os"
-
-func (s *state) handleMode() {
-	go s.handleFollower()
-	go s.handleCandidate()
-	go s.handleLeader()
-}
-
-func (s *state) handleFollower() {
-	for range s.followerChan {
-		s.mu.Lock()
-		s.resetVoted()
-		s.mode = FOLLOWER
-		s.ResetElectionTimeout()
-		s.Info(s.mode, "changed to Follower")
-		s.mu.Unlock()
-	}
-}
+import "fmt"
 
 func (s *state) handleCandidate() {
 	for range s.candidateChan {
-		s.mu.Lock()
-		s.resetVoted()
-		s.mode = CANDIDATE
-		s.Info(s.mode, "changed to Candidate")
-		s.currentTerm++
-		s.mu.Unlock()
-		if !s.broadcastVoteRPC() {
-			s.Info(s.mode, "Not accepted leader vote")
-			s.followerChan <- struct{}{}
+		if s.broadcastVoteRPC() {
+			s.setMode(LEADER)
+			s.Info(s.mode, "change to LEADER")
+			s.broadcastHeartBeat()
+			// os.Exit(0)
 		} else {
-			s.leaderChan <- struct{}{}
+			s.setMode(FOLLOWER)
+			s.Info(s.mode, "change to FOLLOWER")
+			s.ResetElectionTimeout()
+			go s.handleCandidate()
 		}
+		return
 	}
 }
 
-func (s *state) handleLeader() {
-	for range s.leaderChan {
-		s.mu.Lock()
-		s.resetVoted()
-		s.mode = LEADER
-		s.Info(s.mode, "changed to Leader")
-		s.mu.Unlock()
-		os.Exit(0)
+func (s *state) startHeartBeat() {
+	for range s.timer.C {
+		s.Warn(s.mode, fmt.Sprintf("timouted %d", s.electionTimeout))
+		s.setMode(CANDIDATE)
+		s.incrementTerm()
+		s.candidateChan <- struct{}{}
 	}
 }
 

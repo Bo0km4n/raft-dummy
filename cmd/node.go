@@ -21,8 +21,8 @@ var (
 
 func newNodeCommand() *cobra.Command {
 	cmd := cobra.Command{
-		Use:   "node",
-		Short: "start the node",
+		Use:   "sim",
+		Short: "start a raft simulation",
 		Run:   startNode,
 	}
 

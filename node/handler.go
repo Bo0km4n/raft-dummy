@@ -20,7 +20,6 @@ func (s *state) handleFollower() {
 
 func (s *state) handleCandidate() {
 	for range s.candidateChan {
-
 		s.mu.Lock()
 		s.mode = CANDIDATE
 		s.Info(s.mode, "changed to Candidate")

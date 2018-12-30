@@ -11,12 +11,12 @@ func (s *state) handleCandidate() {
 	for range s.candidateChan {
 		if s.broadcastVoteRPC() {
 			s.setMode(LEADER)
-			s.Info(s.mode, "change to LEADER")
+			s.Info("change to LEADER")
 			s.tickHeartBeat()
 			// os.Exit(0)
 		} else {
 			s.setMode(FOLLOWER)
-			s.Info(s.mode, "change to FOLLOWER")
+			s.Info("change to FOLLOWER")
 			s.ResetElectionTimeout()
 		}
 	}
@@ -24,7 +24,7 @@ func (s *state) handleCandidate() {
 
 func (s *state) startHeartBeat() {
 	for range s.timer.C {
-		s.Warn(s.mode, fmt.Sprintf("timouted %d", s.electionTimeout))
+		s.Warn(fmt.Sprintf("timouted %d", s.electionTimeout))
 		s.setMode(CANDIDATE)
 		s.incrementTerm()
 		s.candidateChan <- struct{}{}
@@ -46,7 +46,7 @@ func (s *state) stringMode() string {
 
 func (s *state) heartBeat() {
 	s.ResetElectionTimeout()
-	// s.Info(s.getMode(), "received heart beats")
+	// s.Info( "received heart beats")
 }
 
 func (s *state) broadcastVoteRPC() bool {
@@ -69,7 +69,7 @@ func (s *state) broadcastVoteRPC() bool {
 			return false
 		}
 		if res.VoteGranted {
-			// s.Info(s.getMode(), fmt.Sprintf("voted from: %s", n.Addr))
+			// s.Info( fmt.Sprintf("voted from: %s", n.Addr))
 			voted++
 		}
 		s.mu.Unlock()
@@ -89,7 +89,7 @@ func (s *state) tickHeartBeat() {
 				if !res.Success && res.Term > s.getCurTerm() {
 					s.setMode(FOLLOWER)
 					s.ResetElectionTimeout()
-					s.Info(s.getMode(), "LEADER to be FOLLOWER")
+					s.Info("LEADER to be FOLLOWER")
 					return
 				}
 			}

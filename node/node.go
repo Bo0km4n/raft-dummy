@@ -112,7 +112,7 @@ func (s *state) AddNode(addrs ...string) error {
 	for _, addr := range addrs {
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
-			s.Warn(s.mode, err.Error())
+			s.Warn(err.Error())
 			return err
 		}
 		s.nodes = append(s.nodes, &node{Addr: addr, Conn: conn})
@@ -120,12 +120,12 @@ func (s *state) AddNode(addrs ...string) error {
 	return nil
 }
 
-func (s *state) Info(mode int64, msg string) {
-	logrus.Infof("Machined-id: %d, %s, %d, msg: %s", s.machineID, s.stringMode(), s.currentTerm, msg)
+func (s *state) Info(msg string) {
+	logrus.Infof("Machined-id: %d, Mode: %s, Term: %d, msg: %s", s.machineID, s.stringMode(), s.currentTerm, msg)
 }
 
-func (s *state) Warn(mode int64, msg string) {
-	logrus.Warnf("Machined-id: %d, %s, %d, msg: %s", s.machineID, s.stringMode(), s.currentTerm, msg)
+func (s *state) Warn(msg string) {
+	logrus.Warnf("Machined-id: %d, Mode: %s, Term: %d, msg: %s", s.machineID, s.stringMode(), s.currentTerm, msg)
 }
 
 func (s *state) GetLastLogIndex() int64 {

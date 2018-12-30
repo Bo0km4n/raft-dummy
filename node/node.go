@@ -60,7 +60,7 @@ type log struct {
 
 func (s *state) ResetElectionTimeout() {
 	s.electionTimeout = time.Duration(rand.Int63n(electionTimeoutMax-electionTimeoutMin) + electionTimeoutMin)
-	s.timer = time.NewTimer(s.electionTimeout)
+	s.timer.Reset(s.electionTimeout * time.Millisecond)
 }
 
 func NewNode(machineID, candidateID int64) State {

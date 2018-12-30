@@ -37,9 +37,17 @@ func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto
 			VoteGranted: false,
 		}, nil
 	}
+	if s.getMode() == CANDIDATE {
+		return &proto.RequestVoteResult{
+			Term:        in.Term,
+			VoteGranted: false,
+		}, nil
+	}
 	if s.getVotedFor() == 0 || s.getVotedFor() == in.CandidateId {
 		// update log
 		s.setVotedFor(in.CandidateId)
+		s.Info(s.getMode(), fmt.Sprintf("accpet vote from %d", s.getVotedFor()))
+
 		return &proto.RequestVoteResult{
 			Term:        in.Term,
 			VoteGranted: true,
@@ -48,5 +56,7 @@ func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto
 
 	s.Info(s.getMode(), fmt.Sprintf("voted=%d from %d", s.getVotedFor(), in.CandidateId))
 
-	return &proto.RequestVoteResult{}, errors.New("Not matched vote")
+	return &proto.RequestVoteResult{
+		VoteGranted: false,
+	}, errors.New("Not matched vote")
 }

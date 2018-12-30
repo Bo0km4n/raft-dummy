@@ -18,9 +18,7 @@ func (s *state) handleCandidate() {
 			s.setMode(FOLLOWER)
 			s.Info(s.mode, "change to FOLLOWER")
 			s.ResetElectionTimeout()
-			go s.handleCandidate()
 		}
-		return
 	}
 }
 
@@ -48,11 +46,11 @@ func (s *state) stringMode() string {
 
 func (s *state) heartBeat() {
 	s.ResetElectionTimeout()
-	s.Info(s.getMode(), "received heart beats")
+	// s.Info(s.getMode(), "received heart beats")
 }
 
 func (s *state) broadcastVoteRPC() bool {
-	completed := 1
+	voted := 1
 	for _, n := range s.nodes {
 		s.mu.Lock()
 		client := proto.NewRaftClient(n.Conn)
@@ -70,14 +68,13 @@ func (s *state) broadcastVoteRPC() bool {
 			s.currentTerm = res.Term
 			return false
 		}
-		// pp.Println(res, err)
 		if res.VoteGranted {
-			//s.Info(s.getMode(), fmt.Sprintf("voted from: %s", n.Addr))
-			completed++
+			// s.Info(s.getMode(), fmt.Sprintf("voted from: %s", n.Addr))
+			voted++
 		}
 		s.mu.Unlock()
 	}
-	return completed > len(s.nodes)/2
+	return voted > len(s.nodes)/2
 }
 
 func (s *state) broadcastHeartBeat() {

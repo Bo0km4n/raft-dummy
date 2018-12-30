@@ -12,7 +12,7 @@ func (s *state) handleCandidate() {
 		if s.broadcastVoteRPC() {
 			s.setMode(LEADER)
 			s.Info(s.mode, "change to LEADER")
-			s.broadcastHeartBeat()
+			s.tickHeartBeat()
 			// os.Exit(0)
 		} else {
 			s.setMode(FOLLOWER)
@@ -77,7 +77,7 @@ func (s *state) broadcastVoteRPC() bool {
 	return voted > len(s.nodes)/2
 }
 
-func (s *state) broadcastHeartBeat() {
+func (s *state) tickHeartBeat() {
 	go func() {
 		for {
 			for _, n := range s.nodes {
@@ -95,4 +95,8 @@ func (s *state) broadcastHeartBeat() {
 			}
 		}
 	}()
+}
+
+func (s *state) isLeader() bool {
+	return s.getMode() == LEADER
 }

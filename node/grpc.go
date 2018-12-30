@@ -27,6 +27,11 @@ func (s *state) AppendEntriesRPC(c context.Context, in *proto.AppendEntries) (*p
 			return &proto.AppendEntriesResult{Term: s.getCurTerm(), Success: true}, nil
 		}
 	}
+
+	if s.isLeader() {
+		s.Info(s.getMode(), "receive new log")
+	}
+
 	return &proto.AppendEntriesResult{}, nil
 }
 

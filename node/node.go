@@ -177,3 +177,21 @@ func (s *state) setVotedFor(v int64) int64 {
 func (s *state) getVotedFor() int64 {
 	return atomic.LoadInt64(&s.votedFor)
 }
+
+func (s *state) toLeader() {
+	s.Info("change to LEADER")
+	s.setMode(LEADER)
+	s.setVotedFor(0)
+	s.tickHeartBeat()
+}
+
+func (s *state) toFollower() {
+	s.Info("change to FOLLOWER")
+	s.setMode(FOLLOWER)
+	s.setVotedFor(0)
+	s.ResetElectionTimeout()
+}
+
+func (s *state) isLeader() bool {
+	return s.getMode() == LEADER
+}

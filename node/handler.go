@@ -10,14 +10,9 @@ import (
 func (s *state) handleCandidate() {
 	for range s.candidateChan {
 		if s.broadcastVoteRPC() {
-			s.setMode(LEADER)
-			s.Info("change to LEADER")
-			s.tickHeartBeat()
-			// os.Exit(0)
+			s.toLeader()
 		} else {
-			s.setMode(FOLLOWER)
-			s.Info("change to FOLLOWER")
-			s.ResetElectionTimeout()
+			s.toFollower()
 		}
 	}
 }
@@ -95,8 +90,4 @@ func (s *state) tickHeartBeat() {
 			}
 		}
 	}()
-}
-
-func (s *state) isLeader() bool {
-	return s.getMode() == LEADER
 }

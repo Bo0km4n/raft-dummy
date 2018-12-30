@@ -29,7 +29,7 @@ func (s *state) AppendEntriesRPC(c context.Context, in *proto.AppendEntries) (*p
 	}
 
 	if s.isLeader() {
-		s.Info( "receive new log")
+		s.Info("receive new log")
 
 	}
 
@@ -52,7 +52,7 @@ func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto
 	if s.getVotedFor() == 0 || s.getVotedFor() == in.CandidateId {
 		// update log
 		s.setVotedFor(in.CandidateId)
-		s.Info( fmt.Sprintf("accpet vote from %d", s.getVotedFor()))
+		s.Info(fmt.Sprintf("accpet vote from %d", s.getVotedFor()))
 
 		return &proto.RequestVoteResult{
 			Term:        in.Term,
@@ -60,7 +60,7 @@ func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto
 		}, nil
 	}
 
-	s.Info( fmt.Sprintf("voted=%d from %d", s.getVotedFor(), in.CandidateId))
+	s.Info(fmt.Sprintf("voted=%d from %d", s.getVotedFor(), in.CandidateId))
 
 	return &proto.RequestVoteResult{
 		VoteGranted: false,

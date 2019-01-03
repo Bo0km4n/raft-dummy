@@ -30,7 +30,6 @@ func (s *state) AppendEntriesRPC(c context.Context, in *proto.AppendEntries) (*p
 
 	if s.isLeader() {
 		s.Info("receive new log")
-
 	}
 
 	return &proto.AppendEntriesResult{}, nil

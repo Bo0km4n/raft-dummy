@@ -91,3 +91,11 @@ func (s *state) tickHeartBeat() {
 		}
 	}()
 }
+
+func (s *state) maybeCommit() {
+
+}
+
+func (s *state) maybeLogReplication() {
+
+}

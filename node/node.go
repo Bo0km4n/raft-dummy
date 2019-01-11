@@ -39,23 +39,19 @@ type state struct {
 	candidateID     int64
 	currentTerm     int64
 	votedFor        int64
-	logs            []*log
+	logs            []*proto.Entry
 	commitIndex     int64
 	lastApplied     int64
 	electionTimeout time.Duration
 	nodes           []*node
 	mu              sync.Mutex
 	timer           *time.Timer
+	entryQueue      []*proto.Entry
 }
 
 type node struct {
 	Addr string `json:"addr"`
 	Conn *grpc.ClientConn
-}
-
-type log struct {
-	Term int64
-	Data []byte
 }
 
 func (s *state) ResetElectionTimeout() {

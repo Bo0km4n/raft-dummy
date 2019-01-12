@@ -30,6 +30,17 @@ func (s *state) AppendEntriesRPC(c context.Context, in *proto.AppendEntries) (*p
 
 	if s.isLeader() {
 		s.Info("receive new log")
+		if err := s.maybeCommit(in); err != nil {
+			return &proto.AppendEntriesResult{}, err
+		}
+		return &proto.AppendEntriesResult{
+			Term:    s.getCurTerm(),
+			Success: true,
+		}, nil
+	}
+
+	if s.isFollower() {
+		s.Info("receive log replicate")
 	}
 
 	return &proto.AppendEntriesResult{}, nil

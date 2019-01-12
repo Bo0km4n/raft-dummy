@@ -191,3 +191,7 @@ func (s *state) toFollower() {
 func (s *state) isLeader() bool {
 	return s.getMode() == LEADER
 }
+
+func (s *state) isFollower() bool {
+	return s.getMode() == FOLLOWER
+}

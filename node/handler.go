@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Bo0km4n/raft-dummy/proto"
@@ -92,10 +93,48 @@ func (s *state) tickHeartBeat() {
 	}()
 }
 
-func (s *state) maybeCommit() {
-
+func (s *state) maybeCommit(e *proto.AppendEntries) error {
+	if err := s.writeLog(e); err != nil {
+		return err
+	}
+	agreements := 0
+	for _, n := range s.nodes {
+		client := proto.NewRaftClient(n.Conn)
+		res, err := client.AppendEntriesRPC(context.Background(), &proto.AppendEntries{
+			Term:    s.currentTerm,
+			Entries: e.Entries,
+		})
+		if err != nil {
+			s.Warn(err.Error())
+			continue
+		}
+		if !res.Success {
+			s.Warn("Not agreeded request")
+			continue
+		}
+		agreements++
+	}
+	if agreements > (len(s.nodes)+1)/2 {
+		return s.commit(e)
+	}
+	return errors.New("Not agreeded majority")
 }
 
-func (s *state) maybeLogReplication() {
+func (s *state) maybeLogReplication(e *proto.Entry) error {
+	return nil
+}
 
+func (s *state) commit(e *proto.AppendEntries) error {
+	s.commitIndex = int64(len(s.logs) - 1)
+	return nil
+}
+
+func (s *state) writeLog(e *proto.AppendEntries) error {
+	for _, l := range e.Entries {
+		l.Term = s.getCurTerm()
+		l.Index = s.GetLastLogIndex()
+		s.Info(fmt.Sprintf("index=%d term=%d data=%s", l.Index, l.Term, string(l.Data)))
+		s.logs = append(s.logs)
+	}
+	return nil
 }

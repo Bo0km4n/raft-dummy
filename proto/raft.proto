@@ -3,6 +3,7 @@ package proto;
 service Raft {
     rpc AppendEntriesRPC (AppendEntries) returns (AppendEntriesResult);
     rpc RequestVoteRPC (RequestVote) returns (RequestVoteResult);
+    rpc LogCommitRequestRPC(LogCommitRequest) returns (LogCommitResponse);
 }
 message Entry {
     int64 term = 1;
@@ -34,4 +35,12 @@ message RequestVote {
 message RequestVoteResult {
     int64 term = 1;
     bool voteGranted = 2;
+}
+
+message LogCommitRequest {
+    repeated bytes requests = 1;
+}
+
+message LogCommitResponse {
+    bool success = 1;
 }

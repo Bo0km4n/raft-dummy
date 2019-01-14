@@ -28,17 +28,6 @@ func (s *state) AppendEntriesRPC(c context.Context, in *proto.AppendEntries) (*p
 		}
 	}
 
-	if s.isLeader() {
-		s.Info("receive new log")
-		if err := s.maybeCommit(in); err != nil {
-			return &proto.AppendEntriesResult{}, err
-		}
-		return &proto.AppendEntriesResult{
-			Term:    s.getCurTerm(),
-			Success: true,
-		}, nil
-	}
-
 	if s.isFollower() {
 		s.Info("receive log replicate")
 	}
@@ -75,4 +64,12 @@ func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto
 	return &proto.RequestVoteResult{
 		VoteGranted: false,
 	}, errors.New("Not matched vote")
+}
+
+func (s *state) LogCommitRequestRPC(c context.Context, in *proto.LogCommitRequest) (*proto.LogCommitResponse, error) {
+	if !s.isLeader() {
+		return &proto.LogCommitResponse{Success: false}, nil
+	}
+
+	return &proto.LogCommitResponse{Success: true}, nil
 }

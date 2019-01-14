@@ -195,3 +195,7 @@ func (s *state) isLeader() bool {
 func (s *state) isFollower() bool {
 	return s.getMode() == FOLLOWER
 }
+
+func (s *state) getMachineID() int64 {
+	return s.machineID
+}

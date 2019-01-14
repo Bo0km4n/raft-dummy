@@ -70,6 +70,28 @@ func (s *state) LogCommitRequestRPC(c context.Context, in *proto.LogCommitReques
 	if !s.isLeader() {
 		return &proto.LogCommitResponse{Success: false}, nil
 	}
+	s.Info("receive new log")
+
+	req := &proto.AppendEntries{
+		Term:         s.getCurTerm(),
+		LeaderId:     s.getMachineID(),
+		PrevLogIndex: s.GetLastLogIndex(),
+		PrevLogTerm:  s.GetLastLogTerm(),
+		Entries:      []*proto.Entry{},
+		LeaderCommit: s.commitIndex,
+	}
+
+	for i := range in.Requests {
+		req.Entries = append(req.Entries, &proto.Entry{
+			Term:  req.Term,
+			Index: req.PrevLogIndex + int64(i) + 1,
+			Data:  in.Requests[i],
+		})
+	}
+
+	if err := s.maybeCommit(req); err != nil {
+		return &proto.LogCommitResponse{Success: false}, err
+	}
 
 	return &proto.LogCommitResponse{Success: true}, nil
 }

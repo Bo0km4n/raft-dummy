@@ -81,6 +81,7 @@ func cleanLog(path string) {
 
 func TestCommitLog(t *testing.T) {
 	defer stopServers()
+
 	time.Sleep(2 * time.Second)
 	var leader *state
 	for _, s := range servers {
@@ -92,6 +93,8 @@ func TestCommitLog(t *testing.T) {
 	newLog := &proto.LogCommitRequest{
 		Requests: [][]byte{
 			[]byte("x=10"),
+			[]byte("y=9"),
+			[]byte("x=3"),
 		},
 	}
 	_, err := leader.LogCommitRequestRPC(context.Background(), newLog)

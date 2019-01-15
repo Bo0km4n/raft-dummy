@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/Bo0km4n/raft-dummy/node"
@@ -35,16 +34,13 @@ func newNodeCommand() *cobra.Command {
 func startNode(cnd *cobra.Command, args []string) {
 	fmt.Println("start nodes")
 	var nodes []node.State
-	wg := &sync.WaitGroup{}
 	for i := 0; i < 5; i++ {
 		logger, _ := node.NewLog(fmt.Sprintf("./testdata/log_%d.log", i+1))
 		n := node.NewNode(int64(i+1), int64(i+1), logger)
 		port := fmt.Sprintf(":5005%d", i+1)
 		go func() {
-			wg.Add(1)
 			fmt.Printf("bind port %s\n", port)
 			n.Start(port)
-			wg.Done()
 		}()
 		nodes = append(nodes, n)
 	}
@@ -64,5 +60,9 @@ func startNode(cnd *cobra.Command, args []string) {
 		n.LaunchSideHandlers()
 	}
 
-	wg.Wait()
+	time.Sleep(2 * time.Second)
+
+	for _, v := range nodes {
+		v.Stop()
+	}
 }

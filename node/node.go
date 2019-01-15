@@ -19,6 +19,7 @@ type State interface {
 	Start(port string)
 	AddNode(addr ...string) error
 	LaunchSideHandlers()
+	Stop()
 }
 
 const (
@@ -31,10 +32,12 @@ var electionTimeoutMin = int64(150)
 var electionTimeoutMax = int64(300)
 
 type state struct {
+	server          *grpc.Server
 	mode            int64
 	followerChan    chan struct{}
 	candidateChan   chan struct{}
 	leaderChan      chan struct{}
+	serverStopChan  chan struct{}
 	machineID       int64
 	candidateID     int64
 	currentTerm     int64
@@ -68,6 +71,7 @@ func NewNode(machineID, candidateID int64, logger *Log) State {
 		followerChan:    make(chan struct{}),
 		candidateChan:   make(chan struct{}),
 		leaderChan:      make(chan struct{}),
+		serverStopChan:  make(chan struct{}),
 		candidateID:     candidateID,
 		currentTerm:     0,
 		votedFor:        0,
@@ -92,10 +96,12 @@ func (s *state) Start(port string) {
 	proto.RegisterRaftServer(srv, s)
 
 	reflection.Register(srv)
-	if err := srv.Serve(lis); err != nil {
+	s.server = srv
+	if err := s.server.Serve(lis); err != nil {
 		fmt.Println(err)
 		return
 	}
+	return
 }
 
 func (s *state) LaunchSideHandlers() {
@@ -103,6 +109,20 @@ func (s *state) LaunchSideHandlers() {
 
 	go s.handleCandidate()
 	go s.startHeartBeat()
+	go func() {
+		select {
+		case <-s.serverStopChan:
+			s.server.Stop()
+			return
+		default:
+		}
+	}()
+}
+
+func (s *state) Stop() {
+	s.Info("Shutting down...")
+	close(s.serverStopChan)
+	return
 }
 
 func (s *state) AddNode(addrs ...string) error {

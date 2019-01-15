@@ -81,6 +81,7 @@ func cleanLog(path string) {
 }
 
 func TestCommitLog(t *testing.T) {
+	defer stopServers()
 	time.Sleep(2 * time.Second)
 	var leader *state
 	for _, s := range servers {
@@ -99,5 +100,4 @@ func TestCommitLog(t *testing.T) {
 		t.Fatal(err)
 	}
 	pp.Println(res)
-	defer stopServers()
 }

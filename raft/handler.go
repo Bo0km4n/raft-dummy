@@ -76,24 +76,28 @@ func (s *state) broadcastVoteRPC() bool {
 func (s *state) tickHeartBeat() {
 	go func() {
 		for {
-			for _, n := range s.nodes {
-				client := proto.NewRaftClient(n.Conn)
-				res, _ := client.AppendEntriesRPC(context.Background(), &proto.AppendEntries{
-					Term:         s.currentTerm,
-					LeaderCommit: s.getCommitIndex(),
-					PrevLogIndex: s.GetLastLogIndex(),
-					PrevLogTerm:  s.GetLastLogTerm(),
-					Entries:      []*proto.Entry{},
-				})
-				if !res.Success && res.Term > s.getCurTerm() {
-					s.setMode(FOLLOWER)
-					s.ResetElectionTimeout()
-					s.Info("LEADER to be FOLLOWER")
-					return
-				}
-			}
+			s.bcastHeartBeat()
 		}
 	}()
+}
+
+func (s *state) bcastHeartBeat() {
+	for _, n := range s.nodes {
+		client := proto.NewRaftClient(n.Conn)
+		res, _ := client.AppendEntriesRPC(context.Background(), &proto.AppendEntries{
+			Term:         s.currentTerm,
+			LeaderCommit: s.getCommitIndex(),
+			PrevLogIndex: s.GetLastLogIndex(),
+			PrevLogTerm:  s.GetLastLogTerm(),
+			Entries:      []*proto.Entry{},
+		})
+		if !res.Success && res.Term > s.getCurTerm() {
+			s.setMode(FOLLOWER)
+			s.ResetElectionTimeout()
+			s.Info("LEADER to be FOLLOWER")
+			return
+		}
+	}
 }
 
 func (s *state) replicateLog(e *proto.AppendEntries) error {

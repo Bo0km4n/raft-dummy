@@ -94,9 +94,6 @@ func (s *state) tickHeartBeat() {
 }
 
 func (s *state) maybeCommit(e *proto.AppendEntries) error {
-	if err := s.writeLog(e); err != nil {
-		return err
-	}
 	agreements := 0
 	for _, n := range s.nodes {
 		client := proto.NewRaftClient(n.Conn)
@@ -129,12 +126,6 @@ func (s *state) commit(e *proto.AppendEntries) error {
 	return nil
 }
 
-func (s *state) writeLog(e *proto.AppendEntries) error {
-	for _, l := range e.Entries {
-		l.Term = s.getCurTerm()
-		l.Index = s.GetLastLogIndex()
-		s.Info(fmt.Sprintf("index=%d term=%d data=%s", l.Index, l.Term, string(l.Data)))
-		s.logs = append(s.logs)
-	}
+func (s *state) appendLog(e *proto.AppendEntries) error {
 	return nil
 }

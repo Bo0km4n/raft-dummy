@@ -46,7 +46,7 @@ type state struct {
 	nodes           []*node
 	mu              sync.Mutex
 	timer           *time.Timer
-	entryQueue      []*proto.Entry
+	logger          *Log
 }
 
 type node struct {
@@ -59,7 +59,7 @@ func (s *state) ResetElectionTimeout() {
 	s.timer.Reset(s.electionTimeout * time.Millisecond)
 }
 
-func NewNode(machineID, candidateID int64) State {
+func NewNode(machineID, candidateID int64, logger *Log) State {
 	rand.Seed(time.Now().Unix())
 
 	s := &state{
@@ -75,6 +75,7 @@ func NewNode(machineID, candidateID int64) State {
 		lastApplied:     0,
 		electionTimeout: time.Duration(rand.Int63n(electionTimeoutMax-electionTimeoutMin) + electionTimeoutMin),
 		mu:              sync.Mutex{},
+		logger:          logger,
 	}
 
 	return s
@@ -126,7 +127,7 @@ func (s *state) Warn(msg string) {
 
 func (s *state) GetLastLogIndex() int64 {
 	if len(s.logs) == 0 {
-		return 0
+		return -1
 	}
 	return int64(len(s.logs) - 1)
 }
@@ -172,6 +173,14 @@ func (s *state) setVotedFor(v int64) int64 {
 
 func (s *state) getVotedFor() int64 {
 	return atomic.LoadInt64(&s.votedFor)
+}
+
+func (s *state) getCommitIndex() int64 {
+	return atomic.LoadInt64(&s.commitIndex)
+}
+
+func (s *state) setCommitIndex(idx int64) {
+	atomic.StoreInt64(&s.commitIndex, idx)
 }
 
 func (s *state) toLeader() {

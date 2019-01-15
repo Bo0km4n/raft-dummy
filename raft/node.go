@@ -52,6 +52,11 @@ type state struct {
 	logger          *Log
 }
 
+type leaderInfo struct {
+	addr string
+	port string
+}
+
 type node struct {
 	Addr string `json:"addr"`
 	Conn *grpc.ClientConn
@@ -94,7 +99,6 @@ func (s *state) Start(port string) {
 
 	srv := grpc.NewServer()
 	proto.RegisterRaftServer(srv, s)
-
 	reflection.Register(srv)
 	s.server = srv
 	if err := s.server.Serve(lis); err != nil {

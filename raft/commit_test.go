@@ -1,13 +1,17 @@
 package raft
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/Bo0km4n/raft-dummy/proto"
+	"github.com/k0kubun/pp"
 )
 
-var servers []State
+var servers []*state
 
 func TestMain(m *testing.M) {
 	servers = launchServers()
@@ -15,9 +19,9 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func launchServers() []State {
+func launchServers() []*state {
 	fmt.Println("start nodes")
-	var nodes []State
+	var nodes []*state
 	for i := 0; i < 5; i++ {
 		logger, _ := NewLog(fmt.Sprintf("./testdata/log_%d.log", i+1))
 		n := NewNode(int64(i+1), int64(i+1), logger)
@@ -26,7 +30,7 @@ func launchServers() []State {
 			fmt.Printf("bind port %s\n", port)
 			n.Start(port)
 		}()
-		nodes = append(nodes, n)
+		nodes = append(nodes, n.(*state))
 	}
 
 	time.Sleep(2 * time.Second)
@@ -55,5 +59,13 @@ func stopServers() {
 
 func TestCommitLog(t *testing.T) {
 	time.Sleep(2 * time.Second)
+	var leader *state
+	for _, s := range servers {
+		res, _ := s.IsLeaderRPC(context.Background(), &proto.IsReaderRequest{})
+		if res.IsReader {
+			leader = s
+		}
+	}
+	pp.Println(leader.machineID)
 	defer stopServers()
 }

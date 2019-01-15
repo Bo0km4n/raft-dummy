@@ -4,6 +4,7 @@ service Raft {
     rpc AppendEntriesRPC (AppendEntries) returns (AppendEntriesResult);
     rpc RequestVoteRPC (RequestVote) returns (RequestVoteResult);
     rpc LogCommitRequestRPC(LogCommitRequest) returns (LogCommitResponse);
+    rpc IsLeaderRPC(IsReaderRequest) returns (IsReaderResponse);
 }
 message Entry {
     int64 term = 1;
@@ -43,4 +44,12 @@ message LogCommitRequest {
 
 message LogCommitResponse {
     bool success = 1;
+}
+
+message IsReaderRequest {
+
+}
+
+message IsReaderResponse {
+    bool is_reader = 1;
 }

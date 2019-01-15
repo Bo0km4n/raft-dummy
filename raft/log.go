@@ -1,6 +1,9 @@
 package raft
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type Log struct {
 	File *os.File
@@ -12,4 +15,8 @@ func NewLog(path string) (*Log, error) {
 		return nil, err
 	}
 	return &Log{File: f}, nil
+}
+
+func (l *Log) Append(line string) {
+	fmt.Fprintln(l.File, line)
 }

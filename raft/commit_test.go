@@ -2,6 +2,7 @@ package raft
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -13,6 +14,19 @@ import (
 
 var servers []*state
 
+var (
+	cwd = flag.String("cwd", "", "set cwd")
+)
+
+func init() {
+	flag.Parse()
+	if *cwd != "" {
+		if err := os.Chdir(*cwd); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func TestMain(m *testing.M) {
 	servers = launchServers()
 	code := m.Run()
@@ -23,7 +37,10 @@ func launchServers() []*state {
 	fmt.Println("start nodes")
 	var nodes []*state
 	for i := 0; i < 5; i++ {
-		logger, _ := NewLog(fmt.Sprintf("./testdata/log_%d.log", i+1))
+		logger, err := NewLog(fmt.Sprintf("%s/testdata/log_%d.log", *cwd, i+1))
+		if err != nil {
+			panic(err)
+		}
 		n := NewNode(int64(i+1), int64(i+1), logger)
 		port := fmt.Sprintf(":5005%d", i+1)
 		go func() {
@@ -66,6 +83,15 @@ func TestCommitLog(t *testing.T) {
 			leader = s
 		}
 	}
-	pp.Println(leader.machineID)
+	newLog := &proto.LogCommitRequest{
+		Requests: [][]byte{
+			[]byte("x=10"),
+		},
+	}
+	res, err := leader.LogCommitRequestRPC(context.Background(), newLog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pp.Println(res)
 	defer stopServers()
 }

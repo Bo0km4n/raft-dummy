@@ -89,6 +89,10 @@ func (s *state) LogCommitRequestRPC(c context.Context, in *proto.LogCommitReques
 		})
 	}
 
+	if err := s.appendLog(req); err != nil {
+		return &proto.LogCommitResponse{Success: false}, err
+	}
+
 	if err := s.maybeCommit(req); err != nil {
 		return &proto.LogCommitResponse{Success: false}, err
 	}

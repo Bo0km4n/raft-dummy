@@ -128,7 +128,7 @@ func (s *state) commit(e *proto.AppendEntries) error {
 
 func (s *state) appendLog(e *proto.AppendEntries) error {
 	for i := range e.Entries {
-		s.logger.Append(fmt.Sprintf("index=%d,term=%d,data=%s", e.Entries[i].Index, e.Entries[i].Term, string(e.Entries[i].Data)))
+		s.logger.Append(fmt.Sprintf(`index=%d,term=%d,data="%s"`, e.Entries[i].Index, e.Entries[i].Term, string(e.Entries[i].Data)))
 	}
 	return nil
 }

@@ -37,7 +37,9 @@ func launchServers() []*state {
 	fmt.Println("start nodes")
 	var nodes []*state
 	for i := 0; i < 5; i++ {
-		logger, err := NewLog(fmt.Sprintf("%s/testdata/log_%d.log", *cwd, i+1))
+		path := fmt.Sprintf("%s/testdata/log_%d.log", *cwd, i+1)
+		cleanLog(path)
+		logger, err := NewLog(path)
 		if err != nil {
 			panic(err)
 		}
@@ -72,6 +74,10 @@ func stopServers() {
 	for _, s := range servers {
 		s.Stop()
 	}
+}
+
+func cleanLog(path string) {
+	os.Remove(path)
 }
 
 func TestCommitLog(t *testing.T) {

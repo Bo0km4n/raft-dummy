@@ -24,15 +24,19 @@ func (s *state) AppendEntriesRPC(c context.Context, in *proto.AppendEntries) (*p
 			}
 			s.setTerm(in.Term)
 			s.heartBeat()
+			s.validateAppendEntry(in)
 			return &proto.AppendEntriesResult{Term: s.getCurTerm(), Success: true}, nil
 		}
 	}
 
-	if s.isFollower() {
+	if s.isFollower() && len(in.Entries) != 0 {
 		s.Info("receive log replicate")
+		if err := s.appendLog(in); err != nil {
+			return &proto.AppendEntriesResult{Success: false}, err
+		}
 	}
 
-	return &proto.AppendEntriesResult{}, nil
+	return &proto.AppendEntriesResult{Success: true}, nil
 }
 
 func (s *state) RequestVoteRPC(c context.Context, in *proto.RequestVote) (*proto.RequestVoteResult, error) {
@@ -78,7 +82,7 @@ func (s *state) LogCommitRequestRPC(c context.Context, in *proto.LogCommitReques
 		PrevLogIndex: s.GetLastLogIndex(),
 		PrevLogTerm:  s.GetLastLogTerm(),
 		Entries:      []*proto.Entry{},
-		LeaderCommit: s.commitIndex,
+		LeaderCommit: s.getCommitIndex(),
 	}
 
 	for i := range in.Requests {
@@ -93,7 +97,7 @@ func (s *state) LogCommitRequestRPC(c context.Context, in *proto.LogCommitReques
 		return &proto.LogCommitResponse{Success: false}, err
 	}
 
-	if err := s.maybeCommit(req); err != nil {
+	if err := s.replicateLog(req); err != nil {
 		return &proto.LogCommitResponse{Success: false}, err
 	}
 

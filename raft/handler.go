@@ -79,8 +79,11 @@ func (s *state) tickHeartBeat() {
 			for _, n := range s.nodes {
 				client := proto.NewRaftClient(n.Conn)
 				res, _ := client.AppendEntriesRPC(context.Background(), &proto.AppendEntries{
-					Term:    s.currentTerm,
-					Entries: []*proto.Entry{},
+					Term:         s.currentTerm,
+					LeaderCommit: s.getCommitIndex(),
+					PrevLogIndex: s.GetLastLogIndex(),
+					PrevLogTerm:  s.GetLastLogTerm(),
+					Entries:      []*proto.Entry{},
 				})
 				if !res.Success && res.Term > s.getCurTerm() {
 					s.setMode(FOLLOWER)
@@ -93,14 +96,11 @@ func (s *state) tickHeartBeat() {
 	}()
 }
 
-func (s *state) maybeCommit(e *proto.AppendEntries) error {
+func (s *state) replicateLog(e *proto.AppendEntries) error {
 	agreements := 0
 	for _, n := range s.nodes {
 		client := proto.NewRaftClient(n.Conn)
-		res, err := client.AppendEntriesRPC(context.Background(), &proto.AppendEntries{
-			Term:    s.currentTerm,
-			Entries: e.Entries,
-		})
+		res, err := client.AppendEntriesRPC(context.Background(), e)
 		if err != nil {
 			s.Warn(err.Error())
 			continue
@@ -112,7 +112,8 @@ func (s *state) maybeCommit(e *proto.AppendEntries) error {
 		agreements++
 	}
 	if agreements > (len(s.nodes)+1)/2 {
-		return s.commit(e)
+		s.Info("Agreeded log")
+		return s.commitLog(s.getCommitIndex()+1, s.getCommitIndex()+1+int64(len(e.Entries)))
 	}
 	return errors.New("Not agreeded majority")
 }
@@ -121,8 +122,12 @@ func (s *state) maybeLogReplication(e *proto.Entry) error {
 	return nil
 }
 
-func (s *state) commit(e *proto.AppendEntries) error {
-	s.commitIndex = int64(len(s.logs) - 1)
+func (s *state) commitLog(start, end int64) error {
+	logs := s.logs[start:end]
+	for i := range logs {
+		s.eval(logs[i])
+	}
+	s.setCommitIndex(end - 1)
 	return nil
 }
 
@@ -132,4 +137,15 @@ func (s *state) appendLog(e *proto.AppendEntries) error {
 		s.logs = append(s.logs, e.Entries[i])
 	}
 	return nil
+}
+
+func (s *state) eval(entry *proto.Entry) {
+
+}
+
+func (s *state) validateAppendEntry(e *proto.AppendEntries) {
+	if s.getCommitIndex() < e.LeaderCommit {
+		// s.Info(fmt.Sprintf("callled validateAppendEntry and call commitLog getCommitIndex=%d, e.LeaderCommit=%d", s.getCommitIndex(), e.LeaderCommit))
+		s.commitLog(s.getCommitIndex()+1, e.LeaderCommit+1)
+	}
 }

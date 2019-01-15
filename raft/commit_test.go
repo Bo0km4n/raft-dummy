@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Bo0km4n/raft-dummy/proto"
-	"github.com/k0kubun/pp"
 )
 
 var servers []*state
@@ -95,9 +94,8 @@ func TestCommitLog(t *testing.T) {
 			[]byte("x=10"),
 		},
 	}
-	res, err := leader.LogCommitRequestRPC(context.Background(), newLog)
+	_, err := leader.LogCommitRequestRPC(context.Background(), newLog)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pp.Println(res)
 }

@@ -80,7 +80,7 @@ func NewNode(machineID, candidateID int64, logger *Log) State {
 		candidateID:     candidateID,
 		currentTerm:     0,
 		votedFor:        0,
-		commitIndex:     0,
+		commitIndex:     -1,
 		lastApplied:     0,
 		electionTimeout: time.Duration(rand.Int63n(electionTimeoutMax-electionTimeoutMin) + electionTimeoutMin),
 		mu:              sync.Mutex{},

@@ -10,6 +10,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/Bo0km4n/raft-dummy/kvs"
 	"github.com/Bo0km4n/raft-dummy/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -50,6 +51,7 @@ type state struct {
 	mu              sync.Mutex
 	timer           *time.Timer
 	logger          *Log
+	Storage         kvs.Storage
 }
 
 type leaderInfo struct {
@@ -85,6 +87,7 @@ func NewNode(machineID, candidateID int64, logger *Log) State {
 		electionTimeout: time.Duration(rand.Int63n(electionTimeoutMax-electionTimeoutMin) + electionTimeoutMin),
 		mu:              sync.Mutex{},
 		logger:          logger,
+		Storage:         kvs.NewStorage(),
 	}
 
 	return s

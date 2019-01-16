@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Bo0km4n/raft-dummy/kvs"
+
 	"github.com/Bo0km4n/raft-dummy/proto"
 )
 
@@ -100,7 +102,7 @@ func (s *state) bcastHeartBeat() {
 	}
 }
 
-func (s *state) replicateLog(e *proto.AppendEntries) error {
+func (s *state) replicateLog(e *proto.AppendEntries) ([]*proto.Result, error) {
 	agreements := 0
 	for _, n := range s.nodes {
 		client := proto.NewRaftClient(n.Conn)
@@ -119,20 +121,25 @@ func (s *state) replicateLog(e *proto.AppendEntries) error {
 		s.Info("Agreeded log")
 		return s.commitLog(s.getCommitIndex()+1, s.getCommitIndex()+1+int64(len(e.Entries)))
 	}
-	return errors.New("Not agreeded majority")
+	return nil, errors.New("Not agreeded majority")
 }
 
 func (s *state) maybeLogReplication(e *proto.Entry) error {
 	return nil
 }
 
-func (s *state) commitLog(start, end int64) error {
+func (s *state) commitLog(start, end int64) ([]*proto.Result, error) {
 	logs := s.logs[start:end]
+	results := []*proto.Result{}
 	for i := range logs {
-		s.eval(logs[i])
+		result := s.eval(logs[i])
+		results = append(results, &proto.Result{
+			Success: result.Success,
+			Value:   result.Value.(string),
+		})
 	}
 	s.setCommitIndex(end - 1)
-	return nil
+	return results, nil
 }
 
 func (s *state) appendLog(e *proto.AppendEntries) error {
@@ -143,8 +150,12 @@ func (s *state) appendLog(e *proto.AppendEntries) error {
 	return nil
 }
 
-func (s *state) eval(entry *proto.Entry) {
-
+func (s *state) eval(entry *proto.Entry) *kvs.Result {
+	result, err := s.Storage.Eval(string(entry.Data))
+	if err != nil {
+		return nil
+	}
+	return result
 }
 
 func (s *state) validateAppendEntry(e *proto.AppendEntries) {

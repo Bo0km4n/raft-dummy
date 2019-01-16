@@ -97,11 +97,12 @@ func (s *state) LogCommitRequestRPC(c context.Context, in *proto.LogCommitReques
 		return &proto.LogCommitResponse{Success: false}, err
 	}
 
-	if err := s.replicateLog(req); err != nil {
+	results, err := s.replicateLog(req)
+	if err != nil {
 		return &proto.LogCommitResponse{Success: false}, err
 	}
 
-	return &proto.LogCommitResponse{Success: true}, nil
+	return &proto.LogCommitResponse{Success: true, Results: results}, nil
 }
 
 func (s *state) IsLeaderRPC(c context.Context, in *proto.IsReaderRequest) (*proto.IsReaderResponse, error) {

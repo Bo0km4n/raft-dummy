@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Bo0km4n/raft-dummy/kvs"
 	"github.com/Bo0km4n/raft-dummy/proto"
+	"github.com/k0kubun/pp"
 )
 
 var servers []*state
@@ -92,13 +94,24 @@ func TestCommitLog(t *testing.T) {
 	}
 	newLog := &proto.LogCommitRequest{
 		Requests: [][]byte{
-			[]byte("x=10"),
-			[]byte("y=9"),
-			[]byte("x=3"),
+			[]byte("SET x 10"),
+			[]byte("SET y 9"),
 		},
 	}
-	_, err := leader.LogCommitRequestRPC(context.Background(), newLog)
+	res, err := leader.LogCommitRequestRPC(context.Background(), newLog)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	pp.Println(res)
+
+	storage, _ := leader.Storage.(*kvs.KVS)
+	x, _ := storage.Get("x")
+	if x.(string) != "10" {
+		t.Errorf("Not matched x")
+	}
+	y, _ := storage.Get("y")
+	if y.(string) != "9" {
+		t.Errorf("Not matched y")
 	}
 }

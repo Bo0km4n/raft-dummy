@@ -1,9 +1,12 @@
 package kvs
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
 
 type Storage interface {
-	Set(key string, value interface{}) (interface{}, error)
+	Set(key string, value interface{})
 	Get(key string) (interface{}, error)
 }
 
@@ -17,10 +20,14 @@ func NewStorage() Storage {
 	}
 }
 
-func (k *kvs) Set(key string, value interface{}) (interface{}, error) {
-	return nil, nil
+func (k *kvs) Set(key string, value interface{}) {
+	k.Bucket.Store(key, value)
 }
 
 func (k *kvs) Get(key string) (interface{}, error) {
-	return nil, nil
+	v, ok := k.Bucket.Load(key)
+	if !ok {
+		return nil, errors.New("Failed load value")
+	}
+	return v, nil
 }

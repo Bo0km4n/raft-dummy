@@ -60,9 +60,10 @@ func startNode(cnd *cobra.Command, args []string) {
 		n.LaunchSideHandlers()
 	}
 
-	time.Sleep(2 * time.Second)
+	// time.Sleep(2 * time.Second)
 
-	for _, v := range nodes {
-		v.Stop()
-	}
+	// for _, v := range nodes {
+	// 	v.Stop()
+	// }
+	time.Sleep(1000 * time.Second)
 }

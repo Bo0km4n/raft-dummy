@@ -107,7 +107,7 @@ func (s *state) LogCommitRequestRPC(c context.Context, in *proto.LogCommitReques
 func (s *state) IsLeaderRPC(c context.Context, in *proto.IsReaderRequest) (*proto.IsReaderResponse, error) {
 	if s.getMode() == LEADER {
 		return &proto.IsReaderResponse{IsReader: true}, nil
-	} else {
-		return &proto.IsReaderResponse{IsReader: false}, nil
 	}
+	return &proto.IsReaderResponse{IsReader: false}, nil
+
 }

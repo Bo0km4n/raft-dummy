@@ -1,0 +1,1 @@
+echo -n "$1" | base64 | {v=$(cat) ;echo -e "{\"requests\": [\"$v\"]}"; } | evans -r --port=$2 --service Raft --call LogCommitRequestRPC | jq .

@@ -133,10 +133,17 @@ func (s *state) commitLog(start, end int64) ([]*proto.Result, error) {
 	results := []*proto.Result{}
 	for i := range logs {
 		result := s.eval(logs[i])
-		results = append(results, &proto.Result{
+		if result == nil {
+			return results, errors.New("Failed execute query")
+		}
+		rpb := &proto.Result{
 			Success: result.Success,
-			Value:   result.Value.(string),
-		})
+		}
+		if result.Value != nil {
+			rpb.Value = result.Value.(string)
+		}
+		results = append(results, rpb)
+
 	}
 	s.setCommitIndex(end - 1)
 	return results, nil

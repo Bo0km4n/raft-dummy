@@ -9,6 +9,8 @@ I implment Raft by experiment.
 Raftを実装した分散インメモリKVS
 
 ## Project architecture
+
+```
 .
 ├── Gopkg.lock
 ├── Gopkg.toml
@@ -39,7 +41,7 @@ Raftを実装した分散インメモリKVS
     └── nodes.json
 
 5 directories, 22 files
-
+```
 ### cmd
 起動コマンドのオプション及びエントリーポイント
 
